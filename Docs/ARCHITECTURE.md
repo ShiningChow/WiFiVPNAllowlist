@@ -36,6 +36,12 @@ App 使用 `NSRunningApplication` 按 bundle identifier 查找受控应用，先
 - 登录时启动：`SMAppService.mainApp`。
 - 本地设置：`UserDefaults`，位于 bundle identifier `com.qiming.wifivpnallowlist` 对应的用户偏好中。
 
+### 流量分类
+
+App 读取物理 Wi-Fi 网卡的 64 位收发字节计数，并按自然月和 SSID 累加。每次采样还检查活动系统 VPN、SystemConfiguration 中启用的系统代理，以及受控 VPN App 的运行状态，将增量归入“梯子开启时”或“未开启时”。Wi-Fi、月份、网卡或连接状态发生切换时只重建基线，不归类跨边界增量。
+
+这是按采样状态分段的统计，不检查数据包内容，也不能判断分流 VPN 中某个数据包是否真正经过隧道。旧版本账本缺少连接状态字段，迁移后保留为“升级前未分类”。
+
 ## 不采用的做法
 
 - 不依据 `utun` 接口判断 VPN，避免误伤 Private Relay 等系统服务。

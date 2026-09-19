@@ -1,4 +1,5 @@
 import Darwin
+import Foundation
 import SwiftUI
 import VPNGuardCore
 
@@ -13,19 +14,30 @@ struct WiFiVPNAllowlistApp: App {
             let baselineOnly = accumulator.record(
                 snapshot: .init(interfaceName: "en0", receivedBytes: 1_000, sentBytes: 500),
                 ssid: "Home WiFi",
-                month: "2026-09"
+                month: "2026-09",
+                mode: .direct
             )
             let recorded = accumulator.record(
                 snapshot: .init(interfaceName: "en0", receivedBytes: 1_900, sentBytes: 800),
                 ssid: "Home WiFi",
-                month: "2026-09"
+                month: "2026-09",
+                mode: .direct
             )
             let usage = accumulator.ledger.usages(for: "2026-09").first
+            let legacyData = Data(
+                #"{"month":"2026-08","ssid":"Legacy WiFi","receivedBytes":700,"sentBytes":300}"#.utf8
+            )
+            let legacyUsage = try? JSONDecoder().decode(TrafficUsage.self, from: legacyData)
             guard !baselineOnly,
                   recorded,
                   usage?.ssid == "Home WiFi",
                   usage?.receivedBytes == 900,
-                  usage?.sentBytes == 300 else {
+                  usage?.sentBytes == 300,
+                  usage?.directBytes == 1_200,
+                  usage?.tunneledBytes == 0,
+                  legacyUsage?.unclassifiedBytes == 1_000,
+                  legacyUsage?.directBytes == 0,
+                  legacyUsage?.tunneledBytes == 0 else {
                 fputs("TRAFFIC_SELF_TEST=failed\n", stderr)
                 exit(EXIT_FAILURE)
             }

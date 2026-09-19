@@ -3,6 +3,7 @@ import VPNGuardCore
 
 struct SystemVPNEnforcementOutcome: Sendable {
     var connections: [VPNConnection]
+    var wasActiveBeforeEnforcement: Bool
     var stoppedNames: [String]
     var failures: [String]
     var inspectionError: String?
@@ -21,6 +22,7 @@ enum SystemVPNController {
             let detail = nonempty(listResult.standardError) ?? nonempty(listResult.standardOutput)
             return SystemVPNEnforcementOutcome(
                 connections: [],
+                wasActiveBeforeEnforcement: false,
                 stoppedNames: [],
                 failures: [],
                 inspectionError: detail ?? "scutil --nc list 执行失败（\(listResult.exitCode)）"
@@ -28,9 +30,11 @@ enum SystemVPNController {
         }
 
         let initialConnections = ScutilOutputParser.parseConnectionList(listResult.standardOutput)
+        let wasActive = initialConnections.contains { $0.state.isActive }
         guard shouldBlock else {
             return SystemVPNEnforcementOutcome(
                 connections: initialConnections,
+                wasActiveBeforeEnforcement: wasActive,
                 stoppedNames: [],
                 failures: [],
                 inspectionError: nil
@@ -41,6 +45,7 @@ enum SystemVPNController {
         guard !targets.isEmpty else {
             return SystemVPNEnforcementOutcome(
                 connections: initialConnections,
+                wasActiveBeforeEnforcement: wasActive,
                 stoppedNames: [],
                 failures: [],
                 inspectionError: nil
@@ -68,6 +73,7 @@ enum SystemVPNController {
 
         return SystemVPNEnforcementOutcome(
             connections: finalConnections,
+            wasActiveBeforeEnforcement: wasActive,
             stoppedNames: stoppedNames,
             failures: failures,
             inspectionError: nil

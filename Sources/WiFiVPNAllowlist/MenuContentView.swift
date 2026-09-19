@@ -28,6 +28,9 @@ struct MenuContentView: View {
         let usages = model.trafficUsages(for: model.selectedTrafficMonth)
         let totalReceived = clampedSum(usages.map(\.receivedBytes))
         let totalSent = clampedSum(usages.map(\.sentBytes))
+        let tunneledTotal = clampedSum(usages.map(\.tunneledBytes))
+        let directTotal = clampedSum(usages.map(\.directBytes))
+        let unclassifiedTotal = clampedSum(usages.map(\.unclassifiedBytes))
 
         return VStack(alignment: .leading, spacing: 11) {
             HStack {
@@ -60,6 +63,30 @@ struct MenuContentView: View {
                     trafficMetric("上传", bytes: totalSent, color: .indigo)
                 }
 
+                HStack(spacing: 8) {
+                    connectionTrafficBadge(
+                        "梯子开启",
+                        systemImage: "shield.lefthalf.filled",
+                        bytes: tunneledTotal,
+                        color: .purple
+                    )
+                    connectionTrafficBadge(
+                        "未开启",
+                        systemImage: "arrow.left.arrow.right",
+                        bytes: directTotal,
+                        color: .green
+                    )
+                }
+
+                if unclassifiedTotal > 0 {
+                    Label(
+                        "升级前未分类：\(formatBytes(unclassifiedTotal))",
+                        systemImage: "clock.arrow.circlepath"
+                    )
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                }
+
                 Divider()
 
                 VStack(spacing: 10) {
@@ -83,6 +110,31 @@ struct MenuContentView: View {
                             }
                             .font(.caption2.monospacedDigit())
                             .foregroundStyle(.secondary)
+
+                            HStack(spacing: 8) {
+                                connectionTrafficBadge(
+                                    "梯子开启",
+                                    systemImage: "shield.lefthalf.filled",
+                                    bytes: usage.tunneledBytes,
+                                    color: .purple
+                                )
+                                connectionTrafficBadge(
+                                    "未开启",
+                                    systemImage: "arrow.left.arrow.right",
+                                    bytes: usage.directBytes,
+                                    color: .green
+                                )
+                            }
+
+                            if usage.unclassifiedBytes > 0 {
+                                HStack {
+                                    Label("升级前未分类", systemImage: "clock.arrow.circlepath")
+                                    Spacer()
+                                    Text(formatBytes(usage.unclassifiedBytes))
+                                }
+                                .font(.caption2.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
@@ -95,7 +147,7 @@ struct MenuContentView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Text("统计物理 Wi-Fi 网卡的上下行字节，包含互联网和局域网流量；App 未运行期间不追溯估算。")
+            Text("按采样时的系统 VPN、系统代理或受控 VPN App 状态归类；包含互联网和局域网流量，App 未运行期间不追溯估算。")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -496,6 +548,29 @@ struct MenuContentView: View {
                 .foregroundStyle(color)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func connectionTrafficBadge(
+        _ title: String,
+        systemImage: String,
+        bytes: UInt64,
+        color: Color
+    ) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: systemImage)
+            Text(title)
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            Text(formatBytes(bytes))
+                .monospacedDigit()
+                .fontWeight(.semibold)
+        }
+        .font(.caption2)
+        .foregroundStyle(color)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity)
+        .background(color.opacity(0.09), in: RoundedRectangle(cornerRadius: 7))
     }
 
     private func networkMetric(_ title: String, value: String, color: Color) -> some View {

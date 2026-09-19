@@ -2,7 +2,7 @@ import XCTest
 @testable import VPNGuardCore
 
 final class PolicyEngineTests: XCTestCase {
-    func allowedSSID() {
+    func testAllowedSSID() {
         let settings = GuardSettings(allowedSSIDs: ["Home WiFi", "手机热点"])
         let decision = PolicyEngine.evaluate(currentSSID: "手机热点", settings: settings)
 
@@ -11,7 +11,7 @@ final class PolicyEngineTests: XCTestCase {
         XCTAssertFalse(decision.shouldDisconnectVPN)
     }
 
-    func unknownSSID() {
+    func testUnknownSSID() {
         let settings = GuardSettings(allowedSSIDs: ["Home WiFi"])
         let decision = PolicyEngine.evaluate(currentSSID: "School WiFi", settings: settings)
 
@@ -20,14 +20,14 @@ final class PolicyEngineTests: XCTestCase {
         XCTAssertTrue(decision.shouldDisconnectVPN)
     }
 
-    func unavailableSSIDFailsClosed() {
+    func testUnavailableSSIDFailsClosed() {
         let decision = PolicyEngine.evaluate(currentSSID: nil, settings: GuardSettings())
 
         XCTAssertEqual(decision.mode, .blocked)
         XCTAssertEqual(decision.reason, .ssidUnavailable)
     }
 
-    func nonWiFiPrimaryPathFailsClosed() {
+    func testNonWiFiPrimaryPathFailsClosed() {
         let settings = GuardSettings(allowedSSIDs: ["Home WiFi"])
         let decision = PolicyEngine.evaluate(
             currentSSID: "Home WiFi",
@@ -39,7 +39,7 @@ final class PolicyEngineTests: XCTestCase {
         XCTAssertEqual(decision.reason, .primaryNetworkNotWiFi)
     }
 
-    func unknownPathFailsClosed() {
+    func testUnknownPathFailsClosed() {
         let decision = PolicyEngine.evaluate(
             currentSSID: "Home WiFi",
             primaryNetworkState: .unknown,
@@ -50,7 +50,7 @@ final class PolicyEngineTests: XCTestCase {
         XCTAssertEqual(decision.reason, .networkStateUnknown)
     }
 
-    func unavailableSSIDCanBeAllowed() {
+    func testUnavailableSSIDCanBeAllowed() {
         let settings = GuardSettings(blockWhenSSIDUnavailable: false)
         let decision = PolicyEngine.evaluate(currentSSID: nil, settings: settings)
 
@@ -58,14 +58,14 @@ final class PolicyEngineTests: XCTestCase {
         XCTAssertEqual(decision.reason, .ssidUnavailableException)
     }
 
-    func exactSSIDMatching() {
+    func testExactSSIDMatching() {
         let settings = GuardSettings(allowedSSIDs: ["HomeWiFi"])
         let decision = PolicyEngine.evaluate(currentSSID: "homewifi", settings: settings)
 
         XCTAssertEqual(decision.mode, .blocked)
     }
 
-    func pausedProtection() {
+    func testPausedProtection() {
         let settings = GuardSettings(isProtectionEnabled: false)
         let decision = PolicyEngine.evaluate(currentSSID: "School", settings: settings)
 

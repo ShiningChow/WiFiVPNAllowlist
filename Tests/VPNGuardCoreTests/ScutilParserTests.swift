@@ -2,7 +2,7 @@ import XCTest
 @testable import VPNGuardCore
 
 final class ScutilParserTests: XCTestCase {
-    func parsesConnections() {
+    func testParsesConnections() {
         let output = """
         Available network connection services in the current set (*=enabled):
         * (Connected)      01234567-89AB-CDEF-0123-456789ABCDEF VPN --> IKEv2       \"工作 VPN\"              [VPN:IKEv2]
@@ -22,7 +22,7 @@ final class ScutilParserTests: XCTestCase {
         XCTAssertFalse(connections[2].isEnabled)
     }
 
-    func ignoresInvalidLines() {
+    func testIgnoresInvalidLines() {
         let output = """
         Available network connection services in the current set (*=enabled):
         this is not a VPN line

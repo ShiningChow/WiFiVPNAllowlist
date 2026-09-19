@@ -334,9 +334,12 @@ final class AppModel: ObservableObject {
             primaryNetworkState: primaryNetworkState,
             settings: settings
         )
-        recordTrafficSample()
 
         let shouldBlock = decision.shouldDisconnectVPN
+        let proxyWasEnabled = SystemProxyStatusReader.isEnabled()
+        let applicationsBeforeEnforcement = VPNApplicationController.inspect(
+            applications: settings.managedVPNApplications
+        )
         let systemTask = Task.detached(priority: .utility) {
             SystemVPNController.inspectAndEnforce(shouldBlock: shouldBlock)
         }
@@ -347,12 +350,16 @@ final class AppModel: ObservableObject {
                 applications: settings.managedVPNApplications
             )
         } else {
-            applicationOutcome = VPNApplicationController.inspect(
-                applications: settings.managedVPNApplications
-            )
+            applicationOutcome = applicationsBeforeEnforcement
         }
 
         let systemOutcome = await systemTask.value
+        let trafficMode: TrafficConnectionMode = (
+            systemOutcome.wasActiveBeforeEnforcement
+                || proxyWasEnabled
+                || !applicationsBeforeEnforcement.runningNames.isEmpty
+        ) ? .tunneled : .direct
+        recordTrafficSample(mode: trafficMode)
         systemVPNConnections = systemOutcome.connections
         runningManagedApplicationNames = applicationOutcome.runningNames
         lastCheckedAt = Date()
@@ -389,7 +396,7 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func recordTrafficSample() {
+    private func recordTrafficSample(mode: TrafficConnectionMode) {
         guard primaryNetworkState == .wifi else {
             trafficAccumulator.resetBaseline()
             trafficTrackingNote = "当前默认网络不是 Wi-Fi，未计入 Wi-Fi 流量"
@@ -413,7 +420,8 @@ final class AppModel: ObservableObject {
         let changed = trafficAccumulator.record(
             snapshot: snapshot,
             ssid: currentSSID,
-            month: currentTrafficMonth
+            month: currentTrafficMonth,
+            mode: mode
         )
         guard changed else { return }
 
